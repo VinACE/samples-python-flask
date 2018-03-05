@@ -34,6 +34,10 @@ with open('.samples.config.json') as config_file:
     config_json = json.load(config_file)
     config = config_json['oktaSample']
 
+with open('package.json') as package_file:
+    package_json = json.load(package_file)
+
+userAgent = '{}/{}'.format(package_json['name'], package_json['version'])
 
 # Get allowed issuer from the OKTA_ALLOWED_ISSUER environment variable,
 # use the 'oktaUrl' from our config file if that doesn't exist
@@ -56,7 +60,7 @@ def fetch_jwk_for(id_token=None):
     if key_id in public_key_cache:
         return public_key_cache[key_id]
 
-    r = requests.get(jwks_uri)
+    r = requests.get(jwks_uri, headers = { 'User-Agent': userAgent })
     jwks = r.json()
     for key in jwks['keys']:
         jwk_id = key['kid']
@@ -130,18 +134,18 @@ def auth_callback():
     url = "{}/v1/token".format(config['oidc']['issuer'])
 
     qs = "grant_type=authorization_code&code={}&redirect_uri={}".format(
-        urllib.quote_plus(querystring['code']),
-        urllib.quote_plus(querystring['redirect_uri'])
+        urllib.parse.quote_plus(querystring['code']),
+        urllib.parse.quote_plus(querystring['redirect_uri'])
         )
     url = "{}/v1/token?{}".format(config['oidc']['issuer'], qs)
-    
+
     headers = {
-        'User-Agent': None,
+        'User-Agent': '{}'.format(userAgent),
         'Connection': 'close',
         'Accept': 'application/json',
         'Content-Type': 'application/x-www-form-urlencoded'
     }
-    
+
     r = requests.post(url,
                       # params=querystring,
                       stream=False,
@@ -178,7 +182,7 @@ def auth_callback():
             jose.exceptions.JWSError,
             jose.exceptions.ExpiredSignatureError,
             NameError,
-            ValueError), err:
+            ValueError, err):
         return str(err), 401
     if nonce != claims['nonce']:
         return "invalid nonce", 401
@@ -205,4 +209,4 @@ def bundlejs():
 
 if __name__ == "__main__":
     app.debug = True
-    app.run(port=3000)
+    app.run(port=config['server']['port'])

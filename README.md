@@ -1,4 +1,4 @@
-# AngularJS 1.x and Flask Sample Application
+# Okta Flask Sample Application
 
 ### Table of Contents
 
@@ -24,9 +24,9 @@
 
 ## Introduction
 
-This tutorial will demonstrate how to use OAuth 2.0 and OpenID Connect to add authentication to a Python/Flask application.
+This tutorial will demonstrate how to use OAuth 2.0 and OpenID Connect to add authentication to a Flask application.  The front-end is an Angular.js application and it shows the following use cases:
 
-### 1. Login Redirect
+#### Login Redirect
 
 Users are redirected to your Okta organization for authentication.
 
@@ -34,7 +34,7 @@ Users are redirected to your Okta organization for authentication.
 
 After logging into your Okta organization, an authorization code is returned in a callback URL. This authorization code is then exchanged for an `id_token`.
 
-### 2. Custom Login Form
+#### Custom Login Form
 
 The Okta Sign-In Widget is a fully customizable login experience. You can change how the widget [looks with CSS](http://developer.okta.com/code/javascript/okta_sign-in_widget#customizing-style-with-css) and [is configured with JavaScript](http://developer.okta.com/code/javascript/okta_sign-in_widget#customizing-widget-features-and-text-labels-with-javascript).
 
@@ -44,7 +44,14 @@ This custom-branded login experience uses the [Okta Sign-In Widget](http://devel
 
 ## Prerequisites
 
-This sample app depends on [Node.js](https://nodejs.org/en/) for front-end dependencies and some build scripts - if you don't have it, install it from [nodejs.org](https://nodejs.org/en/).
+Before running this sample, you will need the following:
+
+* An Okta Developer Account, you can sign up for one at https://developer.okta.com/signup/.
+* An Okta Application, configured for Web mode. This is done from the Okta Developer Console and you can find instructions [here][OIDC Web Application Setup Instructions].  When following the wizard, use the default properties.  They are designed to work with our sample applications.
+
+## Installation
+
+This sample app depends on [Node.js](https://nodejs.org/en/) to build the front-end application.  If you don't have it, install it from [nodejs.org](https://nodejs.org/en/).
 
 ```bash
 # Verify that node is installed
@@ -54,53 +61,72 @@ $ node -v
 Then, clone this sample from GitHub and install the front-end dependencies:
 ```bash
 # Clone the repo and navigate to the samples-python-flask dir
-$ git clone git@github.com:okta/samples-python-flask.git && cd samples-python-flask
+$ git clone git@github.com:okta/samples-python-flask.git
+$ cd samples-python-flask
 
 # Install the front-end dependencies
 [samples-python-flask]$ npm install
 ```
 
+We assume you are using virtualenv.  Use virtualenv to start a new environment for this project:
+
 ```bash
-source venv/bin/activate
-pip install -r requirements.txt
+[samples-python-flask]$ virtualenv .
+[samples-python-flask]$ source bin/activate
+[samples-python-flask]$ pip install -r requirements.txt
 ```
 
-## Quick Start
+Note: if on OSX you may get a failure when building cryptography, if so please see https://github.com/pyca/cryptography/issues/2692#issuecomment-272773481
 
-Start the back-end for your sample application with `npm start` or `python app.py`. This will start the app server on [http://localhost:3000](http://localhost:3000).
+## Running This Example
 
-By default, this application uses a mock authorization server which responds to API requests like a configured Okta org - it's useful if you haven't yet set up OpenID Connect but would still like to try this sample. 
+You need to gather the following information from the Okta Developer Console:
 
-To start the mock server, run the following in a second terminal window:
-```bash
-# Starts the mock Okta server at http://127.0.0.1:7777
-[samples-python-flask]$ npm run mock-okta
-```
+- **Client ID** and **Client Secret** - This can be found on the "General" tab of an application, you want to get this for the Web application that you created earlier.
 
-If you'd like to test this sample against your own Okta org, navigate to the Okta Developer Dashboard and follow these steps:
+- **Issuer** - This is the URL of the authorization server that will perform authentication.  All Developer Accounts have a "default" authorization server.  The issuer is a combination of your Org URL (found in the upper right of the console home page) and `/oauth2/default`. For example, `https://dev-1234.oktapreview.com/oauth2/default`.
 
-1. Create a new **Web** application by selecting **Create New Application** from the *Applications* page.		
-2. After accepting the default configuration, select **Create Application** to redirect back to the *General Settings* of your application.		
-3. Copy the **Client ID** and **Client Secret**, as it will be needed for the client configuration.
-4. Finally, navigate to `https://{yourOktaDomain}.com/oauth2/default/.well-known/openid-configuration` to see if the [Default Authorization Server](https://developer.okta.com/docs/api/resources/oauth2.html#using-the-default-authorization-server) is setup. If not, [let us know](mailto:developers@okta.com).
+Now place these values into the file `.samples.config.json` that was created for you in the root of this project:
 
-Then, replace the *oidc* settings in `.samples.config.json` to point to your new app:
 ```javascript
 // .samples.config.json
 {
-  "oidc": {
-    "oktaUrl": "https://{{yourOktaDomain}}.com",
-    "issuer": "https://{{yourOktaDomain}}.com/oauth2/default",
-    "clientId": "{{yourClientId}}",
-    "clientSecret": "{{yourClientSecret}}",
-    "redirectUri": "http://localhost:3000/authorization-code/callback"
+  "oktaSample": {
+    "oidc": {
+      "oktaUrl": "https://{yourOktaDomain}.com",
+      "issuer": "https://{yourOktaDomain}.com/oauth2/default",
+      "clientId": "{clientId}",
+      "clientSecret": "{clientSecret}",
+      "redirectUri": "http://localhost:8080/authorization-code/callback"
+    },
+    "server": {
+      "staticDir": "dist",
+      "port": 8080,
+      "framework": "Flask",
+      "environment": "Python"
+    }
   }
 }
+
 ```
+
+Now start the app server.  We wrap the python script with `npm start`, which will also build the front-end application:
+
+```
+npm start
+```
+
+Now navigate to http://localhost:8080 in your browser.
+
+If you see a home page that prompts you to login, then things are working!  Clicking the **Log in** button will redirect you to the Okta hosted sign-in page.
+
+You can login with the same account that you created when signing up for your Developer Org, or you can use a known username and password from your Okta Directory.
+
+**Note:** If you are currently using your Developer Console, you already have a Single Sign-On (SSO) session for your Org.  You will be automatically logged into your application as the same user that is using the Developer Console.  You may want to use an incognito tab to test the flow from a blank slate.
 
 ## Front-end
 
-When you start this sample, the [AngularJS 1.x UI](https://github.com/okta/samples-js-angular-1) is copied into the `dist/` directory. More information about the AngularJS controllers and views are available in the [AngularJS project repository](https://github.com/okta/samples-js-angular-1/blob/master/README.md).
+When you start this sample, the [Okta AngularJS 1.x Example](https://github.com/okta/samples-js-angular-1) is copied into the `dist/` directory. More information about the AngularJS controllers and views are available in the [AngularJS project repository](https://github.com/okta/samples-js-angular-1/blob/master/README.md).
 
 ### Login Redirect
 
@@ -122,7 +148,7 @@ class LoginRedirectController {
       scopes: ['openid', 'email', 'profile'],
     });
   }
- 
+
   login() {
     this.authClient.token.getWithRedirect({ responseType: 'code' });
   }
@@ -156,7 +182,7 @@ class LoginCustomController {
   constructor(config) {
     this.config = config;
   }
- 
+
   $onInit() {
     const signIn = new SignIn({
       baseUrl: this.config.oktaUrl,
@@ -178,25 +204,11 @@ To perform the [Authorization Code Flow](https://tools.ietf.org/html/rfc6749#sec
 
 ### Using a different front-end
 
-By default, this end-to-end sample ships with our [Angular 1 front-end sample](https://github.com/okta/samples-js-angular-1). To run this back-end with a different front-end:
+At the moment this Flask example only comes with the Angular.js front-end example.  We do have other standalone front-end samples for these frameworks:
 
-1. Choose the front-end
-
-    | Framework | NPM module | Github |
-    |-----------|------------|--------|
-    | Angular 1 | [@okta/samples-js-angular-1](https://www.npmjs.com/package/@okta/samples-js-angular-1) | https://github.com/okta/samples-js-angular-1 |
-    | React | [@okta/samples-js-react](https://www.npmjs.com/package/@okta/samples-js-react) | https://github.com/okta/samples-js-react |
-    | Elm | [@okta/samples-elm](https://www.npmjs.com/package/@okta/samples-elm) | https://github.com/okta/samples-elm |
-
-
-2. Install the front-end
-
-    ```bash
-    # Use the NPM module for the front-end you want to install. I.e. for React:
-    [samples-python-flask]$ npm install @okta/samples-js-react
-    ```
-
-3. Restart the server. You should be up and running with the new front-end!
+* [Okta Angular Sample Projects](https://github.com/okta/samples-js-angular)
+* [Okta React Sample Projects](https://github.com/okta/samples-js-react)
+* [Okta Vue Sample Projects](https://github.com/okta/samples-js-vue)
 
 ## Back-end
 To complete the [Authorization Code Flow](https://tools.ietf.org/html/rfc6749#section-1.3.1), your back-end server performs the following tasks:
@@ -292,7 +304,7 @@ ntFBNjluFhNLJIUkEFovEDlfuB4tv_M8BM75celdy3jkpOurg
 ```
 
 ### Validation
-After receiving the `id_token`, we [validate](http://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation) the token and its claims to prove its integrity. 
+After receiving the `id_token`, we [validate](http://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation) the token and its claims to prove its integrity.
 
 In this sample, we use a [JSON Object Signing and Encryption (JOSE)](https://github.com/mpdavis/python-jose) library to decode and validate the token.
 
@@ -431,3 +443,7 @@ Copyright 2017 Okta, Inc. All rights reserved.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+[OIDC Middleware Library]: https://github.com/okta/okta-oidc-js/tree/master/packages/oidc-middleware
+[Authorization Code Flow]: https://developer.okta.com/authentication-guide/implementing-authentication/auth-code
+[OIDC Web Application Setup Instructions]: https://developer.okta.com/authentication-guide/implementing-authentication/auth-code#1-setting-up-your-application
